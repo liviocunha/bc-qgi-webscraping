@@ -1,18 +1,22 @@
 import requests
+from requests.exceptions import Timeout
 from bs4 import BeautifulSoup
 
 
 class QuadroGeralInabilitadosService:
     URL = 'https://www3.bcb.gov.br/gepad/publicobcb/qgi/relatorioInternet'
 
-    def __get_html_content(self):
-        return requests.get(self.URL).text
+    def request_url(self, url: str = URL):
+        return requests.get(url, timeout=10)
 
-    def __get_soup_lxml(self):
-        return BeautifulSoup(self.__get_html_content(), 'lxml')
+    def get_html_content(self):
+        return self.request_url().text
 
-    def __get_qgi_data(self):
-        qgi_table = self.__get_soup_lxml().find("table")
+    def get_soup_lxml(self):
+        return BeautifulSoup(self.get_html_content(), 'lxml')
+
+    def get_qgi_data(self):
+        qgi_table = self.get_soup_lxml().find("table")
         qgi_table_data = qgi_table.tbody.find_all("tr")
 
         qgi_data = []
@@ -37,7 +41,7 @@ class QuadroGeralInabilitadosService:
             'inabilitado': [],
         }
 
-        qgi_data = self.__get_qgi_data()
+        qgi_data = self.get_qgi_data()
 
         for linha_quadro in qgi_data:
             if linha_quadro['intimado'] == nome.upper():
