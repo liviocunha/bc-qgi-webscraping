@@ -3,6 +3,32 @@ from requests.exceptions import Timeout
 from bs4 import BeautifulSoup
 
 
+def digitos_numericos(texto):
+    return ''.join([posicao for posicao in texto if posicao.isdigit()])
+
+
+def cpf_valido(cpf):
+    if not cpf or not isinstance(cpf, str):
+        return False
+
+    cpf = digitos_numericos(cpf)
+
+    if len(cpf) != 11:
+        return False
+
+    relacao_digito_peso = zip([int(digito) for digito in cpf[0:-2]], [peso for peso in range(10, 1, -1)])
+    resto_soma = sum([digito * peso for digito, peso in relacao_digito_peso]) % 11
+    digito_esperado = 11 - resto_soma if resto_soma >= 2 else 0
+    if cpf[-2] != str(digito_esperado):
+        return False
+
+    relacao_digito_peso = zip([int(digito) for digito in cpf[0:-1]], [peso for peso in range(11, 1, -1)])
+    resto_soma = sum([digito * peso for digito, peso in relacao_digito_peso]) % 11
+    digito_esperado = 11 - resto_soma if resto_soma >= 2 else 0
+    if cpf[-1] != str(digito_esperado):
+        return False
+    return True
+
 class QuadroGeralInabilitadosService:
     URL = 'https://www3.bcb.gov.br/gepad/publicobcb/qgi/relatorioInternet'
 
@@ -37,34 +63,40 @@ class QuadroGeralInabilitadosService:
 
     def busca_inabilitados(self, nome: str, cpf: str):
         data = {
-            'status': 'NADA CONSTA',
+            'mensagem': 'NADA CONSTA',
             'inabilitado': [],
         }
-
-        qgi_data = self.get_qgi_data()
-
-        for linha_quadro in qgi_data:
-            if linha_quadro['intimado'] == nome.upper():
-                if linha_quadro['cpf'] == cpf:
-                    linha_quadro['cpf_corresponde'] = True
-                    linha_quadro['mensagem'] = 'O CPF consultado corresponde ao listado.'
-                else:
-                    linha_quadro['cpf_corresponde'] = False
-                    linha_quadro['mensagem'] = 'O CPF consultado não corresponde ao listado.'
-                data['inabilitado'] = linha_quadro
-                data['status'] = 'OK'
-
+        
         consulta = {
             'nome_pesquisado': nome.upper(),
             'cpf_pesquisado': cpf,
             'data': data
         }
+        
+        if not cpf_valido(cpf):
+            data['mensagem'] = 'CPF INVÁLIDO'
+            return data
+        else:
+            qgi_data = self.get_qgi_data()
+    
+            for linha_quadro in qgi_data:
+                if linha_quadro['intimado'] == nome.upper():
+                    if linha_quadro['cpf'][3:9] == cpf[3:9]:
+                        linha_quadro['cpf_corresponde'] = True
+                        linha_quadro['mensagem'] = 'O CPF consultado corresponde ao listado.'
+                    else:
+                        linha_quadro['cpf_corresponde'] = False
+                        linha_quadro['mensagem'] = 'O CPF consultado não corresponde ao listado.'
+                    data['inabilitado'] = linha_quadro
+                    data['mensagem'] = 'NOME LISTADO'
+    
+            consulta['data'] = data
 
         return consulta
 
 
 nome = 'NOME PESQUISADO'
-cpf = 'xxx000000xx'
+cpf_pesquisado = 'xxx0000000xx'
 
 service_qgi = QuadroGeralInabilitadosService()
-print(service_qgi.busca_inabilitados(nome, cpf))
+print(service_qgi.busca_inabilitados(nome, cpf_pesquisado))
