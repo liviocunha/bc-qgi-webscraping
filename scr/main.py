@@ -1,5 +1,7 @@
+import argparse
 import requests
 from requests.exceptions import Timeout
+from json import dumps
 from bs4 import BeautifulSoup
 
 
@@ -29,14 +31,15 @@ def cpf_valido(cpf):
         return False
     return True
 
-class QuadroGeralInabilitadosService:
-    URL = 'https://www3.bcb.gov.br/gepad/publicobcb/qgi/relatorioInternet'
+class QuadroGeralInabilitadosService(object):
+    def __init__(self):
+        self.url = 'https://www3.bcb.gov.br/gepad/publicobcb/qgi/relatorioInternet'
 
-    def request_url(self, url: str = URL):
+    def request_url(self, url):
         return requests.get(url, timeout=10)
 
     def get_html_content(self):
-        return self.request_url().text
+        return self.request_url(self.url).text
 
     def get_soup_lxml(self):
         return BeautifulSoup(self.get_html_content(), 'lxml')
@@ -95,8 +98,24 @@ class QuadroGeralInabilitadosService:
         return consulta
 
 
-nome = 'NOME PESQUISADO'
-cpf_pesquisado = 'xxx0000000xx'
+def main():
+    arguments = argparse.ArgumentParser()
+    arguments.add_argument('--nome', action='store', dest='nome',
+                           default='nome', required=True,
+                           help='Nome pesquisado.')
+    arguments.add_argument('--cpf', action='store', dest='cpf',
+                           default='', required=False,
+                           help='CPF pesquisado.')
 
-service_qgi = QuadroGeralInabilitadosService()
-print(service_qgi.busca_inabilitados(nome, cpf_pesquisado))
+    args = arguments.parse_args()
+    nome = args.nome
+    cpf_pesquisado = args.cpf
+
+    service_qgi = QuadroGeralInabilitadosService()
+    retorno_consulta = service_qgi.busca_inabilitados(nome, cpf_pesquisado)
+    print(dumps(retorno_consulta, sort_keys=True, indent=4, ensure_ascii=False))
+
+
+
+if __name__ == '__main__':
+    main()
