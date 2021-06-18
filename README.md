@@ -39,7 +39,7 @@ Exemplo retorno nome listado:
     "data": {
         "inabilitado": {
             "cpf": "xxx000000xx",
-            "cpf_corresponde": false,
+            "cpf_corresponde": true,
             "data_publicacao": "15/06/2018",
             "intimado": "EXEMPLO DE NOME PESQUISADO",
             "mensagem": "O CPF consultado corresponde ao listado.",
